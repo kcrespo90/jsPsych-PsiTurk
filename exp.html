@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+
+    <head>
+        <title>jspsych + psiturk word-learning study example </title>
+        <script src="/static/lib/jquery-min.js" type="text/javascript"></script>
+        <script src="/static/lib/underscore-min.js" type="text/javascript"></script>
+        <script src="/static/lib/backbone-min.js" type="text/javascript"></script>
+
+        <script src="/static/js/jspsych/jspsych.js" type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-text.js" type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-single-stim.js" type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-call-function.js" type="text/javascript"></script>
+
+        <script src="/static/js/jspsych/plugins/jspsych-html-keyboard-response.js" type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-image-keyboard-response.js"  type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-audio-keyboard-response.js"  type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-html-button-response.js"  type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-video-button-response.js"  type="text/javascript"></script>
+        <script src="/static/js/jspsych/plugins/jspsych-survey-text.js"  type="text/javascript"></script>
+        <script type="text/javascript">
+
+            // These fields provided by the psiTurk Server
+            var uniqueId = "{{ uniqueId }}"; // a unique string identifying the worker/task
+            var adServerLoc = "{{ adServerLoc }}"; // the location of your ad (so you can send user back at end of experiment)
+            var mode = "{{ mode }}"; // is this running live, sandbox, or in debug mode?
+        </script>
+
+        <!-- utils.js and psiturk.js provide the basic psiturk functionality -->
+        <script src="/static/js/utils.js" type="text/javascript"></script>
+        <script src="/static/js/psiturk.js" type="text/javascript"></script>
+
+        <link href="/static/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+    </head>
+
+    <body>
+        <div id='jspsych-target'></div>
+    </body>
+    <script>
+        /* load psiturk */
+        var psiturk = new PsiTurk(uniqueId, adServerLoc, mode);
+
+
+            /* create timeline */
+            var timeline = [];
+
+            /* define welcome message trial */
+            var welcome = {
+              type: "html-keyboard-response",
+              stimulus: "Welcome to the experiment. Press any key to begin."
+            };
+            timeline.push(welcome);
+
+          /* define instructions trial */
+          var instructions = {
+            type: "html-keyboard-response",
+            stimulus: "<p>In this experiment, you will <strong>see</strong> novel objects " +
+                "on the screen and <strong>hear </strong> novel words.</p>" +
+                "<div style='width: 700px;'>"+
+                "<div style='float: left;'><img src='/static/images/2010.png'></img>" +
+                "<div class='float: right;'><img src='/static/images/2024.png'></img>" +
+                "<p>Press any key to begin.</p>",
+          }
+
+          timeline.push(instructions);
+
+//all images, sound files, and videos in images folder
+
+            var pre_trial = {
+              type: 'html-button-response',
+              stimulus: '<div style="max-width:600px;"><p>Some browsers now require that a user interacts with a web page before video or audio content will autoplay. Clicking the button below satisfies that requirement.</p><p>Without this trial, the video will load but not play.</p></div>',
+              choices: ['continue']
+            };
+            timeline.push(pre_trial);
+
+            var trial = {
+              type: 'video-button-response',
+              sources: ['/static/images/XSWL_2YO_Trials.mp4'],
+              choices: ['y','n'],
+              button_html: '<button class="jspsych-btn">%choice%!</button>',
+              margin_vertical: '10px',
+              margin_horizontal: '8px',
+              prompt: 'Press Y or N',
+              width: 600,
+              //height: 600,
+              autoplay: true,
+              //controls: true,
+              //start: 8,
+              //stop: 9,
+              rate: 1.5,
+              //trial_duration: 2000,
+
+              response_ends_trial: true
+            }
+        timeline.push(trial);
+
+        var survey_page1 = {
+          type: 'survey-text',
+          questions: [
+            {prompt: 'How old are you?', columns: 3, required: true, name: 'Age'},
+            {prompt: 'Where were you born?', placeholder: 'City, State/Province, Country', columns: 50, name: 'BirthLocation'}
+          ],
+          randomize_question_order: true
+        };
+        timeline.push(survey_page1);
+        var survey_page2 = {
+          type: 'survey-text',
+          questions: [
+            {prompt: 'Tell me about your day', placeholder: 'How did it start?', rows:10, columns: 50}
+          ]
+        }
+        timeline.push(survey_page2);
+
+        /* start the experiment */
+        jsPsych.init({
+          timeline: timeline,
+          use_webaudio: false,
+          display_element: $('#jspsych-target'),
+          experiment_structure: experiment_blocks,
+          on_finish: function() {
+              psiturk.saveData({
+                  success: function() { psiturk.completeHIT(); }
+              });
+          },
+          on_data_update: function(data) {
+              psiturk.recordTrialData(data);
+          }
+        })
+        </script>
+        </html>
